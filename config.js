@@ -58,7 +58,7 @@ export const MONEY_TOLERANCE = 0.15;
 // PROGRESS BARS
 export const PBAR_LENGTH = BASE_WIDTH - 9;
 export const PBAR_INACTIVE_CHAR = ' ';
-export const PBAR_ACTIVE_CHAR = '+';
+export const PBAR_ACTIVE_CHAR = '█';
 
 // DEBUG
 export const DISABLE_LOGGING = 'ALL';
