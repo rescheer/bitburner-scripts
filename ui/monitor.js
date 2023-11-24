@@ -1,4 +1,4 @@
-import { PORTS } from 'config.js';
+import { portConfig } from 'config.js';
 import * as Ports from 'lib/Ports.js';
 
 /** @param {NS} ns */

@@ -1,13 +1,15 @@
-import { RAM_PRICE_PER_GB, PORTS } from 'config.js';
+import { gameConfig, portConfig, playerConfig } from 'config.js';
 import * as Ports from 'lib/Ports.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  ns.disableLog('ALL');
+  if (playerConfig.log.silenced) {
+ns.disableLog('ALL');
+}
 
-  const statusPort = ns.getPortHandle(PORTS.status);
-  const pServerPort = ns.getPortHandle(PORTS.pServer);
-  const MONEY_USED = 0.75;
+  const statusPort = ns.getPortHandle(portConfig.status);
+  const pServerPort = ns.getPortHandle(portConfig.pServer);
+  const { moneyUsed } = playerConfig.pServer;
   const servers = { total: { ram: 0, cost: 0, nodes: 0 }, data: {} };
   const buyInfo = {
     maxServers: ns.getPurchasedServerLimit(),
@@ -19,12 +21,12 @@ export async function main(ns) {
   };
 
   const getRamNeeded = () => {
-    const key = PORTS.statusKeys.missingRam;
+    const key = portConfig.statusKeys.missingRam;
     return Number(Ports.peekPortObject(statusPort, key)) || 0;
   };
 
   const updateRamNeeded = (ramAdded) => {
-    const key = PORTS.statusKeys.missingRam;
+    const key = portConfig.statusKeys.missingRam;
     const oldValue = Ports.peekPortObject(statusPort, key) || 0;
     const newValue = Math.max(oldValue - ramAdded, 0);
 
@@ -32,7 +34,7 @@ export async function main(ns) {
   };
 
   const refreshPurchasedServers = () => {
-    const portKey = PORTS.pServerKeys.serverData;
+    const portKey = portConfig.pServerKeys.serverData;
     servers.total.ram = 0;
 
     ns.getPurchasedServers().forEach((server) => {
@@ -41,14 +43,14 @@ export async function main(ns) {
       servers.total.ram += ram;
     });
 
-    servers.total.cost = servers.total.ram * RAM_PRICE_PER_GB;
+    servers.total.cost = servers.total.ram * gameConfig.baseRamPrice;
     servers.total.nodes = Object.keys(servers.data).length;
 
     Ports.updatePortObjectKey(pServerPort, portKey, servers);
   };
 
   const refreshBuyInfo = () => {
-    const portKey = PORTS.pServerKeys.buyData;
+    const portKey = portConfig.pServerKeys.buyData;
 
     buyInfo.maxServers = ns.getPurchasedServerLimit() || 0;
     buyInfo.maxRam = ns.getPurchasedServerMaxRam() || 2;
@@ -100,7 +102,7 @@ export async function main(ns) {
     return best;
   };
 
-  ns.clearPort(PORTS.status);
+  ns.clearPort(portConfig.status);
   refreshPurchasedServers();
   ns.clearLog();
   ns.print(
@@ -122,7 +124,7 @@ export async function main(ns) {
 
       const upgradeResult = checkUpgrades(
         buyInfo.maxRam,
-        myMoney() * MONEY_USED
+        myMoney() * moneyUsed
       );
       if (upgradeResult.cost > 0) {
         bestAffordable.upgrade = upgradeResult;
@@ -131,7 +133,7 @@ export async function main(ns) {
       if (isAbleToPurchase()) {
         const purchaseResult = checkPurchases(
           buyInfo.maxRam,
-          myMoney() * MONEY_USED
+          myMoney() * moneyUsed
         );
 
         if (purchaseResult.cost > 0) {

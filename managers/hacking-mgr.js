@@ -1,20 +1,23 @@
 /** @param {NS} ns */
-import { SCRIPTS, PORTS, DISABLE_LOGGING } from 'config.js';
+import { playerConfig, portConfig } from 'config.js';
 import * as Ports from 'lib/Ports.js';
 
 export async function main(ns) {
-  ns.disableLog(DISABLE_LOGGING);
+  if (playerConfig.log.silenced) {
+    ns.disableLog('ALL');
+  }
 
-  const newTargetsPort = ns.getPortHandle(PORTS.newDeployerTargets);
+  const newTargetsPort = ns.getPortHandle(portConfig.newDeployerTargets);
 
   while (true) {
+    // sleep at end
     if (!newTargetsPort.empty()) {
       const newTargetsData = Ports.readPortObject(newTargetsPort);
       var newDeployers = 0;
 
       while (newTargetsData.length) {
         const targetNode = newTargetsData.shift().node;
-        ns.run(SCRIPTS.deployer, 1, targetNode);
+        ns.run(playerConfig.scripts.deployer, 1, targetNode);
         newDeployers += 1;
       }
 

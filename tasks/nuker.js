@@ -1,49 +1,45 @@
-import {
-  HOME,
-  NETWORK_MAP,
-  ACCESS_EXES,
-  PORTS,
-  DISABLE_LOGGING,
-} from 'config.js';
+import { gameConfig, playerConfig, portConfig } from 'config.js';
 import * as Ports from 'lib/Ports.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  ns.disableLog(DISABLE_LOGGING);
+  if (playerConfig.log.silenced) {
+    ns.disableLog('ALL');
+  }
 
   const nuker = () => {
-    const networkMap = JSON.parse(ns.read(NETWORK_MAP));
-    const newTargetsPort = ns.getPortHandle(PORTS.newDeployerTargets);
+    const networkMap = JSON.parse(ns.read(playerConfig.netmap.file));
+    const newTargetsPort = ns.getPortHandle(portConfig.newDeployerTargets);
     const playerExes = [];
-    const deployerPort = ns.getPortHandle(PORTS.deployer);
+    const deployerPort = ns.getPortHandle(portConfig.deployer);
     const deployerPortData = Ports.peekPortObject(deployerPort) || {};
     const existingTargets = Object.keys(deployerPortData);
     const newTargets = [];
     var playerRootLevel = 0;
 
-    for (let i in ACCESS_EXES) {
-      if (ns.fileExists(ACCESS_EXES[i], HOME)) {
+    for (let i in gameConfig.accessExes) {
+      if (ns.fileExists(gameConfig.accessExes[i], gameConfig.home)) {
         playerRootLevel += 1;
-        playerExes.push(ACCESS_EXES[i]);
+        playerExes.push(gameConfig.accessExes[i]);
       }
     }
 
     for (let node in networkMap) {
       if (node !== 'home' && !existingTargets.includes(node)) {
         if (networkMap[node].ports <= playerRootLevel) {
-          if (playerExes.includes(ACCESS_EXES[0])) {
+          if (playerExes.includes(gameConfig.accessExes[0])) {
             ns.brutessh(node);
           }
-          if (playerExes.includes(ACCESS_EXES[1])) {
+          if (playerExes.includes(gameConfig.accessExes[1])) {
             ns.ftpcrack(node);
           }
-          if (playerExes.includes(ACCESS_EXES[2])) {
+          if (playerExes.includes(gameConfig.accessExes[2])) {
             ns.relaysmtp(node);
           }
-          if (playerExes.includes(ACCESS_EXES[3])) {
+          if (playerExes.includes(gameConfig.accessExes[3])) {
             ns.httpworm(node);
           }
-          if (playerExes.includes(ACCESS_EXES[4])) {
+          if (playerExes.includes(gameConfig.accessExes[4])) {
             ns.sqlinject(node);
           }
           ns.nuke(node);

@@ -1,8 +1,10 @@
-import { HOME, NETWORK_MAP, DISABLE_LOGGING } from 'config.js';
+import { playerConfig, gameConfig } from 'config.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  ns.disableLog(DISABLE_LOGGING);
+  if (playerConfig.log.silenced) {
+    ns.disableLog('ALL');
+  }
 
   const recursiveScan = (host, currentData = {}) => {
     const myConnections = ns.scan(host);
@@ -38,8 +40,8 @@ export async function main(ns) {
   };
 
   const netmap = () => {
-    const data = recursiveScan(HOME);
-    ns.write(NETWORK_MAP, JSON.stringify(data, null, 2), 'w');
+    const data = recursiveScan(gameConfig.home);
+    ns.write(playerConfig.netmap.file, JSON.stringify(data, null, 2), 'w');
     ns.print(`netmap complete! ${Object.keys(data).length} nodes profiled.`);
   };
 

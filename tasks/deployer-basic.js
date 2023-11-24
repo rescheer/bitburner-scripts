@@ -1,28 +1,22 @@
 import * as Ports from 'lib/Ports.js';
 import {
-  HOME,
-  NETWORK_MAP,
-  DISABLE_LOGGING,
-  SCRIPTS,
-  HACK_PERCENT,
-  SLEEP_PADDING,
-  LOG_LEVEL,
-  TICK_INTERVAL,
+  gameConfig,
+  playerConfig,
   PBAR_LENGTH,
   PBAR_ACTIVE_CHAR,
   PBAR_INACTIVE_CHAR,
   BASE_WIDTH,
-  SEC_TOLERANCE,
-  MONEY_TOLERANCE,
-  PORTS,
+  portConfig,
 } from 'config.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  ns.disableLog(DISABLE_LOGGING);
+  if (playerConfig.log.silenced) {
+    ns.disableLog('ALL');
+  }
 
-  const statusPort = ns.getPortHandle(PORTS.status);
-  const deployerPort = ns.getPortHandle(PORTS.deployer);
+  const statusPort = ns.getPortHandle(portConfig.status);
+  const deployerPort = ns.getPortHandle(portConfig.deployer);
   var networkMap = {};
   var activeTarget = {};
   var currentTask = {
@@ -41,7 +35,7 @@ export async function main(ns) {
   });
 
   const updateMissingRam = (val) => {
-    const key = PORTS.statusKeys.missingRam;
+    const key = portConfig.statusKeys.missingRam;
     const oldValue = Ports.peekPortObject(statusPort, key);
 
     if (!oldValue) {
@@ -55,8 +49,11 @@ export async function main(ns) {
 
   const calcHackThreads = (nodeData) => {
     const { maxMoney, hackTime, name } = nodeData;
-    const moneyTarget = maxMoney * HACK_PERCENT;
-    const threadRam = ns.getScriptRam(SCRIPTS.hack, HOME);
+    const moneyTarget = maxMoney * playerConfig.deployer.hackPercent;
+    const threadRam = ns.getScriptRam(
+      playerConfig.scripts.hack,
+      gameConfig.home
+    );
 
     const threads = Math.ceil(ns.hackAnalyzeThreads(name, moneyTarget));
     const totalRam = threads * threadRam;
@@ -68,7 +65,10 @@ export async function main(ns) {
   const calcGrowThreads = (nodeData) => {
     const { currentMoney, maxMoney, growTime, name } = nodeData;
     const deltaMult = maxMoney / currentMoney;
-    const threadRam = ns.getScriptRam(SCRIPTS.grow, HOME);
+    const threadRam = ns.getScriptRam(
+      playerConfig.scripts.grow,
+      gameConfig.home
+    );
 
     const threads = Math.ceil(ns.growthAnalyze(name, deltaMult));
     const totalRam = threads * threadRam;
@@ -80,7 +80,10 @@ export async function main(ns) {
   const calcWeakenThreads = (nodeData) => {
     const { currentSecurity, minSecurity, weakenTime } = nodeData;
     const securityDelta = currentSecurity - minSecurity;
-    const threadRam = ns.getScriptRam(SCRIPTS.weaken, HOME);
+    const threadRam = ns.getScriptRam(
+      playerConfig.scripts.weaken,
+      gameConfig.home
+    );
     const weakenEffect = ns.weakenAnalyze(1);
 
     const threads = Math.ceil(securityDelta / weakenEffect);
@@ -95,7 +98,7 @@ export async function main(ns) {
 
     // try all servers except for home
     for (let node in networkMap) {
-      if (node !== HOME && networkMap[node].root) {
+      if (node !== gameConfig.home && networkMap[node].root) {
         if (threadsRemaining >= 1) {
           const maxRam = ns.getServerMaxRam(node);
           const usedRam = ns.getServerUsedRam(node);
@@ -105,9 +108,9 @@ export async function main(ns) {
           if (possibleThreads >= 1) {
             const actualThreads = Math.min(possibleThreads, threadsRemaining);
 
-            ns.scp(script, node, HOME);
+            ns.scp(script, node, gameConfig.home);
             const pid = ns.exec(script, node, actualThreads, activeTarget.name);
-            if (LOG_LEVEL > 0) {
+            if (!playerConfig.log.silenced) {
               ns.print(
                 `${script}: Sent ${actualThreads}/${threadsRemaining} threads to ${node} (PID ${pid}).`
               );
@@ -126,11 +129,11 @@ export async function main(ns) {
       }
     }
 
-    // if we have threads left, dump them onto HOME
+    // if we have threads left, dump them onto gameConfig.home
     // This is good for early game but could be problematic later
     if (threadsRemaining >= 1) {
-      const maxRam = ns.getServerMaxRam(HOME);
-      const usedRam = ns.getServerUsedRam(HOME);
+      const maxRam = ns.getServerMaxRam(gameConfig.home);
+      const usedRam = ns.getServerUsedRam(gameConfig.home);
       const freeRam = maxRam - usedRam;
       const possibleThreads = Math.floor(freeRam / threadRam);
 
@@ -140,15 +143,20 @@ export async function main(ns) {
       if (possibleThreads >= 1) {
         const actualThreads = Math.min(possibleThreads, threadsRemaining);
 
-        const pid = ns.exec(script, HOME, actualThreads, activeTarget.name);
-        if (LOG_LEVEL > 0) {
+        const pid = ns.exec(
+          script,
+          gameConfig.home,
+          actualThreads,
+          activeTarget.name
+        );
+        if (!playerConfig.log.silenced) {
           ns.print(
-            `OVERFLOW: ${script}: Sent ${actualThreads}/${threadsRemaining} threads to ${HOME}`
+            `OVERFLOW: ${script}: Sent ${actualThreads}/${threadsRemaining} threads to ${gameConfig.home}`
           );
         }
         threadsRemaining -= actualThreads;
         currentTask.scriptsRunning.push({
-          node: HOME,
+          node: gameConfig.home,
           pid,
           arg: activeTarget.name,
         });
@@ -161,7 +169,7 @@ export async function main(ns) {
       // Send low RAM signal
       updateMissingRam(threadsRemaining * threadRam);
 
-      if (LOG_LEVEL > 0) {
+      if (!playerConfig.log.silenced) {
         ns.print(
           `> Distributed ${
             threads - threadsRemaining
@@ -170,7 +178,7 @@ export async function main(ns) {
       }
     }
 
-    if (LOG_LEVEL > 0) {
+    if (!playerConfig.log.silenced) {
       ns.print(`> Disributed all ${script} threads (${threads} total).`);
     }
 
@@ -306,36 +314,46 @@ export async function main(ns) {
   ns.setTitle(`Deployer | ${ns.args[0]}`); */
 
   while (true) {
+    await ns.sleep(playerConfig.deployer.interval);
     if (!currentTask.active) {
-      networkMap = JSON.parse(ns.read(NETWORK_MAP));
-      var sleepTime = SLEEP_PADDING;
+      networkMap = JSON.parse(ns.read(playerConfig.netmap.file));
+      var sleepTime = playerConfig.deployer.sleepPadding;
       var result;
       refreshTargetData();
 
       if (
         activeTarget.currentSecurity >
-        activeTarget.minSecurity * (1 + SEC_TOLERANCE)
+        activeTarget.minSecurity * (1 + playerConfig.deployer.securityTolerance)
       ) {
         // Weaken
         sleepTime += activeTarget.weakenTime;
         currentTask.type = 'Weaken';
         currentTask.scriptsRunning = [];
-        result = distribute(SCRIPTS.weaken, activeTarget.weakenThreadData);
+        result = distribute(
+          playerConfig.scripts.weaken,
+          activeTarget.weakenThreadData
+        );
       } else if (
         activeTarget.currentMoney <
-        activeTarget.maxMoney * (1 - MONEY_TOLERANCE)
+        activeTarget.maxMoney * (1 - playerConfig.deployer.moneyTolerance)
       ) {
         // Grow
         sleepTime += activeTarget.growTime;
         currentTask.type = 'Grow';
         currentTask.scriptsRunning = [];
-        result = distribute(SCRIPTS.grow, activeTarget.growThreadData);
+        result = distribute(
+          playerConfig.scripts.grow,
+          activeTarget.growThreadData
+        );
       } else {
         // Hack
         sleepTime += activeTarget.hackTime;
         currentTask.type = 'Hack';
         currentTask.scriptsRunning = [];
-        result = distribute(SCRIPTS.hack, activeTarget.hackThreadData);
+        result = distribute(
+          playerConfig.scripts.hack,
+          activeTarget.hackThreadData
+        );
       }
       currentTask.target = activeTarget.name;
       currentTask.threadInfo = result;
@@ -350,7 +368,7 @@ export async function main(ns) {
         // If our hacking level has increased, we may be able to restart
         // the current task at a lower duration than the current time left
         const taskTimeLeft = currentTask.expires - Date.now();
-        var possibleTimeLeft = SLEEP_PADDING;
+        var possibleTimeLeft = playerConfig.deployer.sleepPadding;
         switch (currentTask.type) {
           case 'Weaken':
             possibleTimeLeft += ns.getWeakenTime(currentTask.target);
@@ -379,6 +397,5 @@ export async function main(ns) {
     if (ns.getRunningScript().tailProperties) {
       printStatus();
     }
-    await ns.sleep(TICK_INTERVAL);
   }
 }

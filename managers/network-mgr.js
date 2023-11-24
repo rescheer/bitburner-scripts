@@ -1,12 +1,15 @@
 /** @param {NS} ns */
-import { NETMAP_INTERVAL, SCRIPTS, DISABLE_LOGGING } from 'config.js';
+import { playerConfig } from 'config.js';
 
 export async function main(ns) {
-  ns.disableLog(DISABLE_LOGGING);
+  if (playerConfig.log.silenced) {
+    ns.disableLog('ALL');
+  }
 
   while (true) {
-    ns.run(SCRIPTS.netmap);
-    ns.run(SCRIPTS.nuker);
-    await ns.sleep(NETMAP_INTERVAL);
+    ns.run(playerConfig.scripts.netmap);
+    ns.run(playerConfig.scripts.nuker);
+
+    await ns.sleep(playerConfig.netmap.interval);
   }
 }

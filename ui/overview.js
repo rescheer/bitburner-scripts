@@ -1,14 +1,19 @@
-import { PORTS } from 'config.js';
+import { playerConfig, portConfig } from 'config.js';
 import * as Ports from 'lib/Ports.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
+  if (playerConfig.log.silenced) {
+    ns.disableLog('ALL');
+  }
+
   const doc = eval('document');
   const hookHeaders = doc.getElementById('overview-extra-hook-0');
   const hookValues = doc.getElementById('overview-extra-hook-1');
-  const statusPort = ns.getPortHandle(PORTS.status);
-  const deployerPort = ns.getPortHandle(PORTS.deployer);
+  const statusPort = ns.getPortHandle(portConfig.status);
+  const deployerPort = ns.getPortHandle(portConfig.deployer);
   while (true) {
+    await ns.sleep(1000);
     try {
       const headers = [];
       const values = [];
@@ -26,7 +31,7 @@ export async function main(ns) {
 
       headers.push('RamDfct');
       const missingRam =
-        Ports.peekPortObject(statusPort, PORTS.statusKeys.missingRam) || 0;
+        Ports.peekPortObject(statusPort, portConfig.statusKeys.missingRam) || 0;
       values.push(ns.formatRam(missingRam));
 
       hookHeaders.innerText = headers.join(' \n');
@@ -34,6 +39,5 @@ export async function main(ns) {
     } catch (err) {
       ns.print('ERROR: Update Skipped: ' + String(err));
     }
-    await ns.sleep(1000);
   }
 }
