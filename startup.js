@@ -1,30 +1,29 @@
 /** @param {NS} ns */
-import { SCRIPTS } from './config';
+import { playerConfig } from './config';
 
 export async function main(ns) {
-
-  // overview
-  if (ns.run(SCRIPTS.overview, { preventDuplicates: true })) {
-    ns.tprint(`Overview started.`);
+  // overview (eventually UI manager)
+  if (ns.run(playerConfig.scripts.overview, { preventDuplicates: true })) {
+    ns.tprint(`Overview ready.`);
   }
 
   // network manager
-  if (ns.run(SCRIPTS.network, { preventDuplicates: true })) {
-    ns.tprint(`Network Manager started.`);
+  if (ns.run(playerConfig.scripts.network, { preventDuplicates: true })) {
+    ns.tprint(`Network manager ready.`);
   }
 
   // hacknet manager
-  /* if (ns.run(SCRIPTS.hacknet, { preventDuplicates: true })) {
-    ns.tprint(`Hacknet manager started.`);
-  } */
+  if (ns.run(playerConfig.scripts.hacknet, { preventDuplicates: true })) {
+    ns.tprint(`Hacknet manager ready.`);
+  }
 
   // server manager
-  if (ns.run(SCRIPTS.server, { preventDuplicates: true })) {
-    ns.tprint(`Server manager started.`);
+  if (ns.run(playerConfig.scripts.server, { preventDuplicates: true })) {
+    ns.tprint(`Server manager ready.`);
   }
 
   // hacking manager
-  if (ns.run(SCRIPTS.hacking, { preventDuplicates: true })) {
-    ns.tprint(`Hacking manager started.`);
+  if (ns.run(playerConfig.scripts.hacking, { preventDuplicates: true })) {
+    ns.tprint(`Hacking manager ready.`);
   }
 }
