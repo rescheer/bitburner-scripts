@@ -18,11 +18,11 @@ export async function main(ns) {
     var maxDeployerThreads = Math.floor(homeUnreservedRam / deployerRamUse);
 
     if (playerSettings.log.silenced) {
-      if (ns.isLogEnabled('ALL')) {
+      if (ns.isLogEnabled('sleep')) {
         ns.disableLog('ALL');
       }
     } else {
-      if (!ns.isLogEnabled('ALL')) {
+      if (!ns.isLogEnabled('sleep')) {
         ns.enableLog('ALL');
       }
     }
