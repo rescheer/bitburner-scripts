@@ -1,16 +1,21 @@
-import { playerConfig, gameConfig, portConfig } from './config';
+import { playerConfig, gameConfig, portConfig } from 'config.js';
 import * as Settings from 'lib/Settings.js';
 import * as Ports from 'lib/Ports.js';
 
 /** @param {NS} ns */
-export async function main(ns) {
+export async function main(ns) { // (6.7gb)
   const configPort = ns.getPortHandle(portConfig.config);
+  const lowRamMode = ns.getServerMaxRam(gameConfig.home) <= 32;
   const flags = ns.flags([
     ['d', false],
     ['defaults', false],
   ]);
-  // Load settings from file or get defaults
 
+  if (lowRamMode) {
+    ns.tprint(`Starting in Low Ram mode.`);
+  }
+
+  // Load settings from file or get defaults
   if (
     flags.d ||
     flags.defaults ||
@@ -40,28 +45,28 @@ export async function main(ns) {
     }
   }
 
-  // overview (eventually UI manager)
-  if (ns.run(gameConfig.scripts.overview, { preventDuplicates: true })) {
-    ns.tprint(`Overview ready.`);
-  }
-
-  // network manager
+  // network manager (2.6gb)
   if (ns.run(gameConfig.scripts.network, { preventDuplicates: true })) {
     ns.tprint(`Network manager ready.`);
   }
 
-  // hacknet manager
-  if (ns.run(gameConfig.scripts.hacknet, { preventDuplicates: true })) {
-    ns.tprint(`Hacknet manager ready.`);
+  // hacking manager (2.7gb)
+  if (ns.run(gameConfig.scripts.hacking, { preventDuplicates: true })) {
+    ns.tprint(`Hacking manager ready.`);
   }
 
-  // server manager
-  if (ns.run(gameConfig.scripts.server, { preventDuplicates: true })) {
+  // server manager (6.95gb)
+  if (!lowRamMode && ns.run(gameConfig.scripts.server, { preventDuplicates: true })) {
     ns.tprint(`Server manager ready.`);
   }
 
-  // hacking manager
-  if (ns.run(gameConfig.scripts.hacking, { preventDuplicates: true })) {
-    ns.tprint(`Hacking manager ready.`);
+  // hacknet manager (5.7gb)
+  if (!lowRamMode && ns.run(gameConfig.scripts.hacknet, { preventDuplicates: true })) {
+    ns.tprint(`Hacknet manager ready.`);
+  }
+
+  // overview (eventually UI manager) (1.7gb)
+  if (!lowRamMode && ns.run(gameConfig.scripts.overview, { preventDuplicates: true })) {
+    ns.tprint(`Overview ready.`);
   }
 }
