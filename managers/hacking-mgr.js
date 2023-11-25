@@ -31,7 +31,7 @@ export async function main(ns) {
       const newTargetsData = readPortObject(newTargetsPort);
       var newDeployers = 0;
 
-      while (newTargetsData.length) {
+      while (newTargetsData.length && maxDeployerThreads) {
         if (maxDeployerThreads > 0) {
           const targetNode = newTargetsData.shift().node;
           ns.run(gameConfig.scripts.deployer, 1, targetNode);
