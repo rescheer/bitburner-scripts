@@ -27,6 +27,10 @@ export const gameConfig = {
 };
 
 export const playerConfig = {
+  home: {
+    reservedRamPercent: 0.1,
+    reservedRamGb: 3.2,
+  },
   log: {
     silenced: true,
   },
