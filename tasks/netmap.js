@@ -23,6 +23,7 @@ export async function main(ns) {
       ...currentData,
       [host]: {
         connections: myConnections,
+        maxRam: ns.getServerMaxRam(host),
         root: ns.hasRootAccess(host),
         currentMoney,
         maxMoney,
