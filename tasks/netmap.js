@@ -41,7 +41,7 @@ export async function main(ns) {
 
   const netmap = () => {
     const data = recursiveScan(gameConfig.home);
-    ns.write(playerConfig.netmap.file, JSON.stringify(data, null, 2), 'w');
+    ns.write(gameConfig.files.netmap, JSON.stringify(data, null, 2), 'w');
     ns.print(`netmap complete! ${Object.keys(data).length} nodes profiled.`);
   };
 

@@ -19,6 +19,10 @@ export const gameConfig = {
     hacking: '/managers/hacking-mgr.js',
     overview: '/ui/overview.js',
   },
+  files: {
+    playerSettings: 'playerSettings.txt',
+    netmap: 'network_map.txt',
+  },
   baseRamPrice: 55000,
   home: 'home',
 };
@@ -44,7 +48,6 @@ export const playerConfig = {
     moneyTolerance: 0.15,
   },
   netmap: {
-    file: 'network_map.txt',
     interval: 30 * 1000,
   },
 };

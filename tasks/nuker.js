@@ -8,7 +8,7 @@ export async function main(ns) {
   }
 
   const nuker = () => {
-    const networkMap = JSON.parse(ns.read(playerConfig.netmap.file));
+    const networkMap = JSON.parse(ns.read(gameConfig.files.netmap));
     const newTargetsPort = ns.getPortHandle(portConfig.newDeployerTargets);
     const playerExes = [];
     const deployerPort = ns.getPortHandle(portConfig.deployer);

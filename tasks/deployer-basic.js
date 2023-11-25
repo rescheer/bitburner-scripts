@@ -316,7 +316,7 @@ export async function main(ns) {
   while (true) {
     await ns.sleep(playerConfig.deployers.interval);
     if (!currentTask.active) {
-      networkMap = JSON.parse(ns.read(playerConfig.netmap.file));
+      networkMap = JSON.parse(ns.read(gameConfig.files.netmap));
       var sleepTime = playerConfig.deployers.sleepPadding;
       var result;
       refreshTargetData();
