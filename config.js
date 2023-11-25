@@ -56,14 +56,15 @@ export const portConfig = {
   statusKeys: {
     missingRam: 'missingRam',
   },
-  hacknet: 3,
-  pServer: 4,
+  errors: 3,
+  hacknet: 4,
+  pServer: 5,
   pServerKeys: {
     serverData: 'serverData',
     buyData: 'buyData',
   },
-  deployer: 5,
-  newDeployerTargets: 6,
+  deployer: 6,
+  newDeployerTargets: 7,
 };
 
 // PROGRESS BARS
