@@ -1,11 +1,19 @@
 import * as Settings from 'lib/Settings.js';
-import { gameConfig, playerConfig } from 'config.js';
+import { gameConfig, playerConfig, portConfig } from 'config.js';
+import { tryWritePortObject } from "lib/Ports.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
   const argArray = ns.args;
   const { playerSettings: playerSettingsFile } = gameConfig.files;
+  const settingsPort = ns.getPortHandle(portConfig.config);
   var result;
+  var changes = false;
+
+  const updatePort = (settingsObject) => {
+    return tryWritePortObject(settingsPort, settingsObject);
+  }
+
   switch (argArray[0]) {
     case 'get':
       if (argArray[1]) {
@@ -21,7 +29,7 @@ export async function main(ns) {
         ns.tprint(JSON.stringify(result, null, 2));
       }
       break;
-    
+
     case 'set':
       if (argArray[1]) {
         result = Settings.setSetting(
@@ -32,12 +40,13 @@ export async function main(ns) {
         );
         if (result) {
           ns.tprint(`${argArray[1]} set to value: ${argArray[2]}`);
+          changes = true;
         }
       } else {
         ns.tprint('SET Usage: set <setting> <value>');
       }
       break;
-    
+
     case 'reset':
       if (argArray[1]) {
         result = Settings.resetSetting(
@@ -48,22 +57,28 @@ export async function main(ns) {
         );
         if (result !== null) {
           ns.tprint(`${argArray[1]} reset to default value: ${result}`);
+          changes = true;
         }
       } else {
         ns.tprint('RESET Usage: reset <setting>');
       }
       break;
-    
+
     case 'resetall':
       Settings.resetAllSettings(ns, playerSettingsFile, playerConfig);
       ns.tprint(`All settings returned to default values.`);
+      changes = true;
       break;
-    
+
     default:
       ns.tprint('GET Usage: get <setting>');
       ns.tprint('SET Usage: set <setting> <value>');
       ns.tprint('RESET Usage: reset <setting>');
       ns.tprint('RESET ALL Usage: resetall');
       break;
+  }
+  if (changes) {
+    const fileData = JSON.parse(ns.read(playerSettingsFile));
+    tryWritePortObject(settingsPort, fileData);
   }
 }
