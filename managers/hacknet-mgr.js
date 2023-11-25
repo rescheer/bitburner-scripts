@@ -13,9 +13,13 @@ export async function main(ns) {
     const playerSettings = peekPortObject(configPort);
     const { enabled, moneyUsed } = playerSettings.hacknet;
     if (playerSettings.log.silenced) {
-      ns.disableLog('ALL');
+      if (ns.isLogEnabled('ALL')) {
+        ns.disableLog('ALL');
+      }
     } else {
-      ns.enableLog('ALL');
+      if (!ns.isLogEnabled('ALL')) {
+        ns.enableLog('ALL');
+      }
     }
 
     await ns.sleep(5000);

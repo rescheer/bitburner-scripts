@@ -117,9 +117,13 @@ export async function main(ns) {
     const playerSettings = peekPortObject(configPort);
     const { moneyUsed } = playerSettings.pServer;
     if (playerSettings.log.silenced) {
-      ns.disableLog('ALL');
+      if (ns.isLogEnabled('ALL')) {
+        ns.disableLog('ALL');
+      }
     } else {
-      ns.enableLog('ALL');
+      if (!ns.isLogEnabled('ALL')) {
+        ns.enableLog('ALL');
+      }
     }
     
     refreshBuyInfo();

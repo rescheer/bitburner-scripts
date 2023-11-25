@@ -13,9 +13,13 @@ export async function main(ns) {
     const configPort = ns.getPortHandle(portConfig.config);
     const playerSettings = peekPortObject(configPort);
     if (playerSettings.log.silenced) {
-      ns.disableLog('ALL');
+      if (ns.isLogEnabled('ALL')) {
+        ns.disableLog('ALL');
+      }
     } else {
-      ns.enableLog('ALL');
+      if (!ns.isLogEnabled('ALL')) {
+        ns.enableLog('ALL');
+      }
     }
 
     await ns.sleep(1000);

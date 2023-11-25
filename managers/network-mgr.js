@@ -8,9 +8,13 @@ export async function main(ns) {
   while (true) {
     const playerSettings = peekPortObject(configPort);
     if (playerSettings.log.silenced) {
-      ns.disableLog('ALL');
+      if (ns.isLogEnabled('ALL')) {
+        ns.disableLog('ALL');
+      }
     } else {
-      ns.enableLog('ALL');
+      if (!ns.isLogEnabled('ALL')) {
+        ns.enableLog('ALL');
+      }
     }
 
     ns.run(gameConfig.scripts.netmap);
