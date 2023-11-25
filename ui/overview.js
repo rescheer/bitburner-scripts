@@ -1,25 +1,31 @@
-import { playerConfig, portConfig } from 'config.js';
-import * as Ports from 'lib/Ports.js';
+import { portConfig } from 'config.js';
+import { peekPortObject } from "lib/Ports.js";
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  if (playerConfig.log.silenced) {
-    ns.disableLog('ALL');
-  }
-
   const doc = eval('document');
   const hookHeaders = doc.getElementById('overview-extra-hook-0');
   const hookValues = doc.getElementById('overview-extra-hook-1');
   const statusPort = ns.getPortHandle(portConfig.status);
   const deployerPort = ns.getPortHandle(portConfig.deployer);
+
   while (true) {
+    const configPort = ns.getPortHandle(portConfig.config);
+    const playerSettings = peekPortObject(configPort);
+    if (playerSettings.log.silenced) {
+      ns.disableLog('ALL');
+    } else {
+      ns.enableLog('ALL');
+    }
+
     await ns.sleep(1000);
+
     try {
       const headers = [];
       const values = [];
 
       headers.push('Deploys');
-      const deployerData = Ports.peekPortObject(deployerPort);
+      const deployerData = peekPortObject(deployerPort);
       const numDeploys = deployerData ? Object.keys(deployerData).length : 0;
       values.push(numDeploys);
 
@@ -31,7 +37,7 @@ export async function main(ns) {
 
       headers.push('RamDfct');
       const missingRam =
-        Ports.peekPortObject(statusPort, portConfig.statusKeys.missingRam) || 0;
+        peekPortObject(statusPort, portConfig.statusKeys.missingRam) || 0;
       values.push(ns.formatRam(missingRam));
 
       hookHeaders.innerText = headers.join(' \n');

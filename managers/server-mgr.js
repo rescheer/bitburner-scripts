@@ -1,15 +1,12 @@
-import { gameConfig, portConfig, playerConfig } from 'config.js';
-import * as Ports from 'lib/Ports.js';
+import { gameConfig, portConfig } from 'config.js';
+import { peekPortObject, updatePortObjectKey } from "lib/Ports.js";
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  if (playerConfig.log.silenced) {
-ns.disableLog('ALL');
-}
-
+  const configPort = ns.getPortHandle(portConfig.config);
   const statusPort = ns.getPortHandle(portConfig.status);
   const pServerPort = ns.getPortHandle(portConfig.pServer);
-  const { moneyUsed } = playerConfig.pServer;
+
   const servers = { total: { ram: 0, cost: 0, nodes: 0 }, data: {} };
   const buyInfo = {
     maxServers: ns.getPurchasedServerLimit(),
@@ -22,15 +19,15 @@ ns.disableLog('ALL');
 
   const getRamNeeded = () => {
     const key = portConfig.statusKeys.missingRam;
-    return Number(Ports.peekPortObject(statusPort, key)) || 0;
+    return Number(peekPortObject(statusPort, key)) || 0;
   };
 
   const updateRamNeeded = (ramAdded) => {
     const key = portConfig.statusKeys.missingRam;
-    const oldValue = Ports.peekPortObject(statusPort, key) || 0;
+    const oldValue = peekPortObject(statusPort, key) || 0;
     const newValue = Math.max(oldValue - ramAdded, 0);
 
-    Ports.updatePortObjectKey(statusPort, key, newValue);
+    updatePortObjectKey(statusPort, key, newValue);
   };
 
   const refreshPurchasedServers = () => {
@@ -46,7 +43,7 @@ ns.disableLog('ALL');
     servers.total.cost = servers.total.ram * gameConfig.baseRamPrice;
     servers.total.nodes = Object.keys(servers.data).length;
 
-    Ports.updatePortObjectKey(pServerPort, portKey, servers);
+    updatePortObjectKey(pServerPort, portKey, servers);
   };
 
   const refreshBuyInfo = () => {
@@ -55,7 +52,7 @@ ns.disableLog('ALL');
     buyInfo.maxServers = ns.getPurchasedServerLimit() || 0;
     buyInfo.maxRam = ns.getPurchasedServerMaxRam() || 2;
 
-    Ports.updatePortObjectKey(pServerPort, portKey, buyInfo);
+    updatePortObjectKey(pServerPort, portKey, buyInfo);
   };
 
   const isAbleToPurchase = () => {
@@ -115,7 +112,15 @@ ns.disableLog('ALL');
   // ns.tail();
 
   while (true) {
-    await ns.sleep(5000);
+    // sleep at end
+    const playerSettings = peekPortObject(configPort);
+    const { moneyUsed } = playerSettings.pServer;
+    if (playerSettings.log.silenced) {
+      ns.disableLog('ALL');
+    } else {
+      ns.enableLog('ALL');
+    }
+    
     refreshBuyInfo();
     refreshPurchasedServers();
 
@@ -171,5 +176,7 @@ ns.disableLog('ALL');
     );
     ns.print(`> Ram Requested: ${ns.formatRam(getRamNeeded())}`);
     ns.print(`> Total spent: ${ns.formatNumber(servers.total.cost)}`);
+
+    await ns.sleep(5000);
   }
 }

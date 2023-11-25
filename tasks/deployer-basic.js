@@ -1,7 +1,6 @@
-import * as Ports from 'lib/Ports.js';
+import { peekPortObject, deletePortObjectKey, updatePortObjectKey } from "lib/Ports.js";
 import {
   gameConfig,
-  playerConfig,
   PBAR_LENGTH,
   PBAR_ACTIVE_CHAR,
   PBAR_INACTIVE_CHAR,
@@ -11,10 +10,7 @@ import {
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  if (playerConfig.log.silenced) {
-    ns.disableLog('ALL');
-  }
-
+  const configPort = ns.getPortHandle(portConfig.config);
   const statusPort = ns.getPortHandle(portConfig.status);
   const deployerPort = ns.getPortHandle(portConfig.deployer);
   var networkMap = {};
@@ -30,30 +26,26 @@ export async function main(ns) {
   };
 
   ns.atExit(() => {
-    Ports.deletePortObjectKey(deployerPort, activeTarget.name);
+    deletePortObjectKey(deployerPort, activeTarget.name);
     ns.closeTail();
   });
 
   const updateMissingRam = (val) => {
     const key = portConfig.statusKeys.missingRam;
-    const oldValue = Ports.peekPortObject(statusPort, key);
+    const oldValue = peekPortObject(statusPort, key);
 
     if (!oldValue) {
-      Ports.updatePortObjectKey(statusPort, key, val);
+      updatePortObjectKey(statusPort, key, val);
     } else {
       if (oldValue < val) {
-        Ports.updatePortObjectKey(statusPort, key, val);
+        updatePortObjectKey(statusPort, key, val);
       }
     }
   };
 
-  const calcHackThreads = (nodeData) => {
-    const { maxMoney, hackTime, name } = nodeData;
-    const moneyTarget = maxMoney * playerConfig.deployers.hackPercent;
-    const threadRam = ns.getScriptRam(
-      gameConfig.scripts.hack,
-      gameConfig.home
-    );
+  const calcHackThreads = (nodeData, moneyTarget) => {
+    const { hackTime, name } = nodeData;
+    const threadRam = ns.getScriptRam(gameConfig.scripts.hack, gameConfig.home);
 
     const threads = Math.ceil(ns.hackAnalyzeThreads(name, moneyTarget));
     const totalRam = threads * threadRam;
@@ -65,10 +57,7 @@ export async function main(ns) {
   const calcGrowThreads = (nodeData) => {
     const { currentMoney, maxMoney, growTime, name } = nodeData;
     const deltaMult = maxMoney / currentMoney;
-    const threadRam = ns.getScriptRam(
-      gameConfig.scripts.grow,
-      gameConfig.home
-    );
+    const threadRam = ns.getScriptRam(gameConfig.scripts.grow, gameConfig.home);
 
     const threads = Math.ceil(ns.growthAnalyze(name, deltaMult));
     const totalRam = threads * threadRam;
@@ -92,7 +81,7 @@ export async function main(ns) {
     return { threads, threadRam, time: weakenTime, totalRam };
   };
 
-  const distribute = (script, threadData) => {
+  const distribute = (script, threadData, playerSettings) => {
     const { threads, threadRam } = threadData;
     var threadsRemaining = threads;
 
@@ -110,7 +99,7 @@ export async function main(ns) {
 
             ns.scp(script, node, gameConfig.home);
             const pid = ns.exec(script, node, actualThreads, activeTarget.name);
-            if (!playerConfig.log.silenced) {
+            if (!playerSettings.log.silenced) {
               ns.print(
                 `${script}: Sent ${actualThreads}/${threadsRemaining} threads to ${node} (PID ${pid}).`
               );
@@ -149,7 +138,7 @@ export async function main(ns) {
           actualThreads,
           activeTarget.name
         );
-        if (!playerConfig.log.silenced) {
+        if (!playerSettings.log.silenced) {
           ns.print(
             `OVERFLOW: ${script}: Sent ${actualThreads}/${threadsRemaining} threads to ${gameConfig.home}`
           );
@@ -169,7 +158,7 @@ export async function main(ns) {
       // Send low RAM signal
       updateMissingRam(threadsRemaining * threadRam);
 
-      if (!playerConfig.log.silenced) {
+      if (!playerSettings.log.silenced) {
         ns.print(
           `> Distributed ${
             threads - threadsRemaining
@@ -178,7 +167,7 @@ export async function main(ns) {
       }
     }
 
-    if (!playerConfig.log.silenced) {
+    if (!playerSettings.log.silenced) {
       ns.print(`> Disributed all ${script} threads (${threads} total).`);
     }
 
@@ -186,7 +175,7 @@ export async function main(ns) {
     return result;
   };
 
-  const refreshTargetData = () => {
+  const refreshTargetData = (playerSettings) => {
     const host = ns.args[0];
 
     const currentMoney = ns.getServerMoneyAvailable(host);
@@ -196,6 +185,7 @@ export async function main(ns) {
     const hackTime = ns.getHackTime(host);
     const growTime = ns.getGrowTime(host);
     const weakenTime = ns.getWeakenTime(host);
+    const moneyTarget = maxMoney * playerSettings.deployers.hackPercent;
 
     activeTarget = {
       name: host,
@@ -208,7 +198,7 @@ export async function main(ns) {
       weakenTime,
     };
 
-    activeTarget.hackThreadData = calcHackThreads(activeTarget);
+    activeTarget.hackThreadData = calcHackThreads(activeTarget, moneyTarget);
     activeTarget.growThreadData = calcGrowThreads(activeTarget);
     activeTarget.weakenThreadData = calcWeakenThreads(activeTarget);
   };
@@ -314,16 +304,25 @@ export async function main(ns) {
   ns.setTitle(`Deployer | ${ns.args[0]}`); */
 
   while (true) {
-    await ns.sleep(playerConfig.deployers.interval);
+    const playerSettings = peekPortObject(configPort);
+    if (playerSettings.log.silenced) {
+      ns.disableLog('ALL');
+    } else {
+      ns.enableLog('ALL');
+    }
+
+    await ns.sleep(playerSettings.deployers.interval);
+
     if (!currentTask.active) {
       networkMap = JSON.parse(ns.read(gameConfig.files.netmap));
-      var sleepTime = playerConfig.deployers.sleepPadding;
+      var sleepTime = playerSettings.deployers.sleepPadding;
       var result;
-      refreshTargetData();
+      refreshTargetData(playerSettings);
 
       if (
         activeTarget.currentSecurity >
-        activeTarget.minSecurity * (1 + playerConfig.deployers.securityTolerance)
+        activeTarget.minSecurity *
+          (1 + playerSettings.deployers.securityTolerance)
       ) {
         // Weaken
         sleepTime += activeTarget.weakenTime;
@@ -331,11 +330,12 @@ export async function main(ns) {
         currentTask.scriptsRunning = [];
         result = distribute(
           gameConfig.scripts.weaken,
-          activeTarget.weakenThreadData
+          activeTarget.weakenThreadData,
+          playerSettings
         );
       } else if (
         activeTarget.currentMoney <
-        activeTarget.maxMoney * (1 - playerConfig.deployers.moneyTolerance)
+        activeTarget.maxMoney * (1 - playerSettings.deployers.moneyTolerance)
       ) {
         // Grow
         sleepTime += activeTarget.growTime;
@@ -343,7 +343,8 @@ export async function main(ns) {
         currentTask.scriptsRunning = [];
         result = distribute(
           gameConfig.scripts.grow,
-          activeTarget.growThreadData
+          activeTarget.growThreadData,
+          playerSettings
         );
       } else {
         // Hack
@@ -352,7 +353,8 @@ export async function main(ns) {
         currentTask.scriptsRunning = [];
         result = distribute(
           gameConfig.scripts.hack,
-          activeTarget.hackThreadData
+          activeTarget.hackThreadData,
+          playerSettings
         );
       }
       currentTask.target = activeTarget.name;
@@ -360,7 +362,7 @@ export async function main(ns) {
       currentTask.duration = sleepTime;
       currentTask.expires = Date.now() + sleepTime;
       currentTask.active = true;
-      Ports.updatePortObjectKey(deployerPort, activeTarget.name, currentTask);
+      updatePortObjectKey(deployerPort, activeTarget.name, currentTask);
     } else {
       currentTask.active = ns.isRunning(currentTask.scriptsRunning[0].pid);
 
@@ -368,7 +370,7 @@ export async function main(ns) {
         // If our hacking level has increased, we may be able to restart
         // the current task at a lower duration than the current time left
         const taskTimeLeft = currentTask.expires - Date.now();
-        var possibleTimeLeft = playerConfig.deployers.sleepPadding;
+        var possibleTimeLeft = playerSettings.deployers.sleepPadding;
         switch (currentTask.type) {
           case 'Weaken':
             possibleTimeLeft += ns.getWeakenTime(currentTask.target);

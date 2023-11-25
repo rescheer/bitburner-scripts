@@ -1,10 +1,14 @@
-import { gameConfig, playerConfig, portConfig } from 'config.js';
-import * as Ports from 'lib/Ports.js';
+import { gameConfig, portConfig } from 'config.js';
+import { peekPortObject, tryWritePortObject } from "lib/Ports.js";
 
 /** @param {NS} ns **/
 export async function main(ns) {
-  if (playerConfig.log.silenced) {
+  const configPort = ns.getPortHandle(portConfig.config);
+  const playerSettings = peekPortObject(configPort);
+  if (playerSettings.log.silenced) {
     ns.disableLog('ALL');
+  } else {
+    ns.enableLog('ALL');
   }
 
   const nuker = () => {
@@ -12,7 +16,7 @@ export async function main(ns) {
     const newTargetsPort = ns.getPortHandle(portConfig.newDeployerTargets);
     const playerExes = [];
     const deployerPort = ns.getPortHandle(portConfig.deployer);
-    const deployerPortData = Ports.peekPortObject(deployerPort) || {};
+    const deployerPortData = peekPortObject(deployerPort) || {};
     const existingTargets = Object.keys(deployerPortData);
     const newTargets = [];
     var playerRootLevel = 0;
@@ -55,7 +59,7 @@ export async function main(ns) {
     if (newTargets.length) {
       // Sort descending
       newTargets.sort((a, b) => b.score - a.score);
-      Ports.tryWritePortObject(newTargetsPort, newTargets);
+      tryWritePortObject(newTargetsPort, newTargets);
     }
   };
 

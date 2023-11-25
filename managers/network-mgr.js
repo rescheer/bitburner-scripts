@@ -1,15 +1,21 @@
-/** @param {NS} ns */
-import { playerConfig, gameConfig } from 'config.js';
+import { portConfig, gameConfig } from 'config.js';
+import { peekPortObject } from 'lib/Ports.js';
 
+/** @param {NS} ns */
 export async function main(ns) {
-  if (playerConfig.log.silenced) {
-    ns.disableLog('ALL');
-  }
+  const configPort = ns.getPortHandle(portConfig.config);
 
   while (true) {
+    const playerSettings = peekPortObject(configPort);
+    if (playerSettings.log.silenced) {
+      ns.disableLog('ALL');
+    } else {
+      ns.enableLog('ALL');
+    }
+
     ns.run(gameConfig.scripts.netmap);
     ns.run(gameConfig.scripts.nuker);
 
-    await ns.sleep(playerConfig.netmap.interval);
+    await ns.sleep(playerSettings.netmap.interval);
   }
 }

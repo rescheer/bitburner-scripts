@@ -1,18 +1,25 @@
-import { playerConfig } from 'config.js';
+import { portConfig } from 'config.js';
+import { peekPortObject } from 'lib/Ports.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
+  const configPort = ns.getPortHandle(portConfig.config);
+
   function myMoney() {
     return ns.getServerMoneyAvailable('home');
   }
 
-  const { enabled, moneyUsed } = playerConfig.hacknet;
-  if (playerConfig.log.silenced) {
-    ns.disableLog('ALL');
-  }
-
   while (true) {
+    const playerSettings = peekPortObject(configPort);
+    const { enabled, moneyUsed } = playerSettings.hacknet;
+    if (playerSettings.log.silenced) {
+      ns.disableLog('ALL');
+    } else {
+      ns.enableLog('ALL');
+    }
+
     await ns.sleep(5000);
+
     if (enabled) {
       var nodes = 0;
 

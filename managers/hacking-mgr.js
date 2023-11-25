@@ -1,18 +1,22 @@
 /** @param {NS} ns */
-import { playerConfig, gameConfig, portConfig } from 'config.js';
-import * as Ports from 'lib/Ports.js';
+import { gameConfig, portConfig } from 'config.js';
+import { peekPortObject, readPortObject } from "lib/Ports.js";
 
 export async function main(ns) {
-  if (playerConfig.log.silenced) {
-    ns.disableLog('ALL');
-  }
-
+  const configPort = ns.getPortHandle(portConfig.config);
   const newTargetsPort = ns.getPortHandle(portConfig.newDeployerTargets);
 
   while (true) {
     // sleep at end
+    const playerSettings = peekPortObject(configPort);
+    if (playerSettings.log.silenced) {
+      ns.disableLog('ALL');
+    } else {
+      ns.enableLog('ALL');
+    }
+
     if (!newTargetsPort.empty()) {
-      const newTargetsData = Ports.readPortObject(newTargetsPort);
+      const newTargetsData = readPortObject(newTargetsPort);
       var newDeployers = 0;
 
       while (newTargetsData.length) {
