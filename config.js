@@ -6,14 +6,6 @@ export const gameConfig = {
     'HTTPWorm.exe',
     'SQLInject.exe',
   ],
-  baseRamPrice: 55000,
-  home: 'home',
-};
-
-export const playerConfig = {
-  log: {
-    silenced: true,
-  },
   scripts: {
     hack: '/workers/hack.js',
     grow: '/workers/grow.js',
@@ -27,6 +19,14 @@ export const playerConfig = {
     hacking: '/managers/hacking-mgr.js',
     overview: '/ui/overview.js',
   },
+  baseRamPrice: 55000,
+  home: 'home',
+};
+
+export const playerConfig = {
+  log: {
+    silenced: true,
+  },
   pServer: {
     enabled: true,
     moneyUsed: 0.5,
@@ -35,7 +35,8 @@ export const playerConfig = {
     enabled: false,
     moneyUsed: 0.5,
   },
-  deployer: {
+  deployers: {
+    enabled: true,
     hackPercent: 0.5,
     sleepPadding: 100,
     interval: 500,
@@ -70,7 +71,3 @@ export const BASE_WIDTH = 50;
 export const PBAR_LENGTH = BASE_WIDTH - 9;
 export const PBAR_INACTIVE_CHAR = ' ';
 export const PBAR_ACTIVE_CHAR = '█';
-
-// DEBUG
-export const DISABLE_LOGGING = 'ALL';
-export const LOG_LEVEL = 'NONE';

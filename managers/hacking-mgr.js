@@ -1,5 +1,5 @@
 /** @param {NS} ns */
-import { playerConfig, portConfig } from 'config.js';
+import { playerConfig, gameConfig, portConfig } from 'config.js';
 import * as Ports from 'lib/Ports.js';
 
 export async function main(ns) {
@@ -17,7 +17,7 @@ export async function main(ns) {
 
       while (newTargetsData.length) {
         const targetNode = newTargetsData.shift().node;
-        ns.run(playerConfig.scripts.deployer, 1, targetNode);
+        ns.run(gameConfig.scripts.deployer, 1, targetNode);
         newDeployers += 1;
       }
 

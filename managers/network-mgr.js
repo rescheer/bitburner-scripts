@@ -1,5 +1,5 @@
 /** @param {NS} ns */
-import { playerConfig } from 'config.js';
+import { playerConfig, gameConfig } from 'config.js';
 
 export async function main(ns) {
   if (playerConfig.log.silenced) {
@@ -7,8 +7,8 @@ export async function main(ns) {
   }
 
   while (true) {
-    ns.run(playerConfig.scripts.netmap);
-    ns.run(playerConfig.scripts.nuker);
+    ns.run(gameConfig.scripts.netmap);
+    ns.run(gameConfig.scripts.nuker);
 
     await ns.sleep(playerConfig.netmap.interval);
   }

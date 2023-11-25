@@ -49,9 +49,9 @@ export async function main(ns) {
 
   const calcHackThreads = (nodeData) => {
     const { maxMoney, hackTime, name } = nodeData;
-    const moneyTarget = maxMoney * playerConfig.deployer.hackPercent;
+    const moneyTarget = maxMoney * playerConfig.deployers.hackPercent;
     const threadRam = ns.getScriptRam(
-      playerConfig.scripts.hack,
+      gameConfig.scripts.hack,
       gameConfig.home
     );
 
@@ -66,7 +66,7 @@ export async function main(ns) {
     const { currentMoney, maxMoney, growTime, name } = nodeData;
     const deltaMult = maxMoney / currentMoney;
     const threadRam = ns.getScriptRam(
-      playerConfig.scripts.grow,
+      gameConfig.scripts.grow,
       gameConfig.home
     );
 
@@ -81,7 +81,7 @@ export async function main(ns) {
     const { currentSecurity, minSecurity, weakenTime } = nodeData;
     const securityDelta = currentSecurity - minSecurity;
     const threadRam = ns.getScriptRam(
-      playerConfig.scripts.weaken,
+      gameConfig.scripts.weaken,
       gameConfig.home
     );
     const weakenEffect = ns.weakenAnalyze(1);
@@ -314,35 +314,35 @@ export async function main(ns) {
   ns.setTitle(`Deployer | ${ns.args[0]}`); */
 
   while (true) {
-    await ns.sleep(playerConfig.deployer.interval);
+    await ns.sleep(playerConfig.deployers.interval);
     if (!currentTask.active) {
       networkMap = JSON.parse(ns.read(playerConfig.netmap.file));
-      var sleepTime = playerConfig.deployer.sleepPadding;
+      var sleepTime = playerConfig.deployers.sleepPadding;
       var result;
       refreshTargetData();
 
       if (
         activeTarget.currentSecurity >
-        activeTarget.minSecurity * (1 + playerConfig.deployer.securityTolerance)
+        activeTarget.minSecurity * (1 + playerConfig.deployers.securityTolerance)
       ) {
         // Weaken
         sleepTime += activeTarget.weakenTime;
         currentTask.type = 'Weaken';
         currentTask.scriptsRunning = [];
         result = distribute(
-          playerConfig.scripts.weaken,
+          gameConfig.scripts.weaken,
           activeTarget.weakenThreadData
         );
       } else if (
         activeTarget.currentMoney <
-        activeTarget.maxMoney * (1 - playerConfig.deployer.moneyTolerance)
+        activeTarget.maxMoney * (1 - playerConfig.deployers.moneyTolerance)
       ) {
         // Grow
         sleepTime += activeTarget.growTime;
         currentTask.type = 'Grow';
         currentTask.scriptsRunning = [];
         result = distribute(
-          playerConfig.scripts.grow,
+          gameConfig.scripts.grow,
           activeTarget.growThreadData
         );
       } else {
@@ -351,7 +351,7 @@ export async function main(ns) {
         currentTask.type = 'Hack';
         currentTask.scriptsRunning = [];
         result = distribute(
-          playerConfig.scripts.hack,
+          gameConfig.scripts.hack,
           activeTarget.hackThreadData
         );
       }
@@ -368,7 +368,7 @@ export async function main(ns) {
         // If our hacking level has increased, we may be able to restart
         // the current task at a lower duration than the current time left
         const taskTimeLeft = currentTask.expires - Date.now();
-        var possibleTimeLeft = playerConfig.deployer.sleepPadding;
+        var possibleTimeLeft = playerConfig.deployers.sleepPadding;
         switch (currentTask.type) {
           case 'Weaken':
             possibleTimeLeft += ns.getWeakenTime(currentTask.target);
