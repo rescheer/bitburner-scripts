@@ -32,6 +32,7 @@ export async function main(ns) {
 
   const refreshPurchasedServers = () => {
     const portKey = portConfig.pServerKeys.serverData;
+    const ramCostPerGb = ns.getPurchasedServerCost(2) / 2;
     servers.total.ram = 0;
 
     ns.getPurchasedServers().forEach((server) => {
@@ -40,7 +41,7 @@ export async function main(ns) {
       servers.total.ram += ram;
     });
 
-    servers.total.cost = servers.total.ram * gameConfig.baseRamPrice;
+    servers.total.cost = servers.total.ram * ramCostPerGb;
     servers.total.nodes = Object.keys(servers.data).length;
 
     updatePortObjectKey(pServerPort, portKey, servers);

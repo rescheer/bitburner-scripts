@@ -23,7 +23,6 @@ export const gameConfig = {
     playerSettings: 'playerSettings.txt',
     netmap: 'network_map.txt',
   },
-  baseRamPrice: 55000,
   home: 'home',
 };
 
