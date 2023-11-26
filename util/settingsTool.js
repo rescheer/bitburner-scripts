@@ -1,6 +1,6 @@
 import * as Settings from 'lib/Settings.js';
 import { gameConfig, playerConfig, portConfig } from 'config.js';
-import { tryWritePortObject } from "lib/Ports.js";
+import { tryWritePortObject } from 'lib/Ports.js';
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -12,7 +12,7 @@ export async function main(ns) {
 
   const updatePort = (settingsObject) => {
     return tryWritePortObject(settingsPort, settingsObject);
-  }
+  };
 
   switch (argArray[0]) {
     case 'get':
@@ -70,11 +70,19 @@ export async function main(ns) {
       changes = true;
       break;
 
+    case 'load':
+      const settingsData = Settings.getAllSettings(ns, playerSettingsFile);
+      if (updatePort(settingsData)) {
+        ns.tprint(`Current settings loaded from file.`);
+      }
+      break;
+
     default:
-      ns.tprint('GET Usage: get <setting>');
-      ns.tprint('SET Usage: set <setting> <value>');
-      ns.tprint('RESET Usage: reset <setting>');
-      ns.tprint('RESET ALL Usage: resetall');
+      ns.tprint('LOAD Usage: settings load');
+      ns.tprint('GET Usage: settings get <setting>');
+      ns.tprint('SET Usage: settings set <setting> <value>');
+      ns.tprint('RESET Usage: settings reset <setting>');
+      ns.tprint('RESET ALL Usage: settings resetall');
       break;
   }
   if (changes) {
