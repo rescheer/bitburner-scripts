@@ -8,9 +8,9 @@ export const gameConfig = {
   ],
   scripts: {
     startup: 'startup.js',
-    hack: 'workers/hack.js',
-    grow: 'workers/grow.js',
-    weaken: 'workers/weaken.js',
+    hackThread: 'workers/hack.js',
+    growThread: 'workers/grow.js',
+    weakenThread: 'workers/weaken.js',
     nuker: 'tasks/nuker.js',
     netmap: 'tasks/netmap.js',
     deployer: 'tasks/deployer-basic.js',
