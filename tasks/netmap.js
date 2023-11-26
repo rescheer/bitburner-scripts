@@ -1,15 +1,17 @@
 import { portConfig, gameConfig } from 'config.js';
-import { peekPortObject } from "lib/Ports.js";
+import { peekPortObject } from 'lib/Ports.js';
 
 /** @param {NS} ns **/
 export async function main(ns) {
   const configPort = ns.getPortHandle(portConfig.config);
   const playerSettings = peekPortObject(configPort);
-  if (playerSettings.log.silenced) {
-    ns.disableLog('ALL');
-  } else {
-    ns.enableLog('ALL');
-  }
+  try {
+    if (playerSettings.log.silenced) {
+      ns.disableLog('ALL');
+    } else {
+      ns.enableLog('ALL');
+    }
+  } catch (error) {}
 
   const recursiveScan = (host, currentData = {}) => {
     const myConnections = ns.scan(host);
@@ -17,7 +19,7 @@ export async function main(ns) {
     const maxMoney = ns.getServerMaxMoney(host);
     const hackTime = ns.getHackTime(host);
     const growth = ns.getServerGrowth(host);
-    const score = (maxMoney / hackTime) * (ns.hackAnalyzeChance(host) ^ 2);
+    const score = (maxMoney / hackTime) * ns.hackAnalyzeChance(host) ** 2;
 
     let newData = {
       ...currentData,
