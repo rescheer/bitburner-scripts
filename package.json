@@ -1,0 +1,11 @@
+{
+  "name": "bitburner-scripts",
+  "version": "0.1.0",
+  "description": "My scripts for the game Bitburner https://github.com/bitburner-official/bitburner-src",
+  "main": "startup.js",
+  "author": "Robert Scheer",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.54.0"
+  }
+}
