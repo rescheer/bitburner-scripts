@@ -46,7 +46,7 @@ export const playerConfig = {
     moneyTolerance: 0,
   },
   netmap: {
-    interval: 30 * 1000,
+    interval: 15 * 1000,
   },
 };
 
