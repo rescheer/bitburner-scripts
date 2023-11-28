@@ -1,31 +1,29 @@
-import { portConfig } from 'config.js';
-import { peekPortObject } from 'lib/Ports.js';
+import { portConfig } from 'cfg/config';
+import PortWrapper from 'lib/PortWrapper';
 
-/** @param {NS} ns **/
+/** @param {NS} ns */
 export async function main(ns) {
-  const configPort = ns.getPortHandle(portConfig.config);
+  const configPort = new PortWrapper(ns, portConfig.config);
 
   function myMoney() {
     return ns.getServerMoneyAvailable('home');
   }
 
   while (true) {
-    const playerSettings = peekPortObject(configPort);
+    const playerSettings = configPort.peek();
     const { enabled, moneyUsed } = playerSettings.hacknet;
     if (playerSettings.log.silenced) {
       if (ns.isLogEnabled('sleep')) {
         ns.disableLog('ALL');
       }
-    } else {
-      if (!ns.isLogEnabled('sleep')) {
-        ns.enableLog('ALL');
-      }
+    } else if (!ns.isLogEnabled('sleep')) {
+      ns.enableLog('ALL');
     }
 
     await ns.sleep(5000);
 
     if (enabled) {
-      var nodes = 0;
+      let nodes = 0;
 
       // Buy a new node
       if (ns.hacknet.getPurchaseNodeCost() < myMoney() * moneyUsed) {
@@ -33,13 +31,10 @@ export async function main(ns) {
       }
       nodes = ns.hacknet.numNodes();
 
-      for (var i = 0; i < nodes; i++) {
+      for (let i = 0; i < nodes; i += 1) {
         // Upgrade level to next mult of 10
-        var mod = ns.hacknet.getNodeStats(i).level % 10;
-        if (
-          ns.hacknet.getLevelUpgradeCost(i, 10 - mod) <
-          myMoney() * moneyUsed
-        ) {
+        const mod = ns.hacknet.getNodeStats(i).level % 10;
+        if (ns.hacknet.getLevelUpgradeCost(i, 10 - mod) < myMoney() * moneyUsed) {
           ns.hacknet.upgradeLevel(i, 10 - mod);
         }
 

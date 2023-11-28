@@ -1,4 +1,4 @@
-import { peekPortObject, deletePortObjectKey, updatePortObjectKey } from 'lib/ports';
+import PortWrapper from 'lib/PortWrapper';
 import {
   gameConfig,
   PBAR_LENGTH,
@@ -6,13 +6,13 @@ import {
   PBAR_INACTIVE_CHAR,
   BASE_WIDTH,
   portConfig,
-} from 'config';
+} from 'cfg/config';
 
 /** @param {NS} ns * */
 export async function main(ns) {
-  const configPort = ns.getPortHandle(portConfig.config);
-  const statusPort = ns.getPortHandle(portConfig.status);
-  const deployerPort = ns.getPortHandle(portConfig.deployer);
+  const configPort = new PortWrapper(ns, portConfig.config);
+  const statusPort = new PortWrapper(ns, portConfig.status);
+  const deployerPort = new PortWrapper(ns, portConfig.deployer);
   let networkMap = {};
   let activeTarget = {};
   const currentTask = {
@@ -26,18 +26,16 @@ export async function main(ns) {
   };
 
   ns.atExit(() => {
-    deletePortObjectKey(deployerPort, activeTarget.name);
+    deployerPort.deleteValue(activeTarget.name);
     ns.closeTail();
   });
 
   const updateMissingRam = (val) => {
     const key = portConfig.statusKeys.missingRam;
-    const oldValue = peekPortObject(statusPort, key);
+    const oldValue = statusPort.peekValue(key);
 
-    if (!oldValue) {
-      updatePortObjectKey(statusPort, key, val);
-    } else if (oldValue < val) {
-      updatePortObjectKey(statusPort, key, val);
+    if (!oldValue || oldValue < val) {
+      statusPort.writeValue(key, val);
     }
   };
 
@@ -46,6 +44,9 @@ export async function main(ns) {
     const threadRam = ns.getScriptRam(gameConfig.scripts.hackThread, gameConfig.home);
 
     const threads = Math.ceil(ns.hackAnalyzeThreads(name, moneyTarget));
+    if (threads === -1) {
+      ns.tprint(`${name} has ${activeTarget.currentMoney} and we want ${moneyTarget}`);
+    }
     const totalRam = threads * threadRam;
 
     return {
@@ -259,7 +260,11 @@ export async function main(ns) {
   ns.setTitle(`Deployer | ${ns.args[0]}`); */
 
   while (true) {
-    const playerSettings = peekPortObject(configPort);
+    const playerSettings = configPort.peek();
+    const {
+      interval, securityTolerance, sleepPadding, hackPercent,
+    } = playerSettings.deployers;
+
     try {
       if (playerSettings.log.silenced) {
         if (ns.isLogEnabled('sleep')) {
@@ -272,19 +277,16 @@ export async function main(ns) {
       ns.disableLog('ALL');
     }
 
-    await ns.sleep(playerSettings.deployers.interval);
+    await ns.sleep(interval);
 
     if (!currentTask.active) {
       networkMap = JSON.parse(ns.read(gameConfig.files.netmap));
-      let sleepTime = playerSettings.deployers.sleepPadding;
+      let sleepTime = sleepPadding;
       let result;
       refreshTargetData();
 
       // TODO clean this up oh my god what the fuck
-      if (
-        activeTarget.currentSecurity
-        > activeTarget.minSecurity * (1 + playerSettings.deployers.securityTolerance)
-      ) {
+      if (activeTarget.currentSecurity > activeTarget.minSecurity * (1 + securityTolerance)) {
         // Weaken
         activeTarget.weakenThreadData = calcWeakenThreads(activeTarget);
         sleepTime += activeTarget.weakenTime;
@@ -308,8 +310,8 @@ export async function main(ns) {
         );
       } else {
         // Hack
-        const hackMoneyPercent = playerSettings.deployers.hackPercent;
-        const moneyTarget = activeTarget.maxMoney * hackMoneyPercent;
+        const hackMoneyPercent = hackPercent;
+        const moneyTarget = Math.floor(activeTarget.maxMoney * hackMoneyPercent);
         activeTarget.hackThreadData = calcHackThreads(activeTarget, moneyTarget);
         sleepTime += activeTarget.hackTime;
         currentTask.type = 'Hack';
@@ -325,12 +327,12 @@ export async function main(ns) {
       currentTask.duration = sleepTime;
       currentTask.expires = Date.now() + sleepTime;
       currentTask.active = true;
-      updatePortObjectKey(deployerPort, activeTarget.name, currentTask);
+      deployerPort.writeValue(activeTarget.name, currentTask);
     } else {
       // If our hacking level has increased, we may be able to restart
       // the current task at a lower duration than the current time left
       const taskTimeLeft = currentTask.expires - Date.now();
-      let possibleTimeLeft = playerSettings.deployers.sleepPadding;
+      let possibleTimeLeft = sleepPadding;
       switch (currentTask.type) {
         case 'Weaken':
           possibleTimeLeft += ns.getWeakenTime(currentTask.target);

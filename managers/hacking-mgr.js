@@ -1,58 +1,47 @@
-import { gameConfig, portConfig } from 'config.js';
-import { peekPortObject, readPortObject } from 'lib/Ports.js';
+import { gameConfig, portConfig } from 'cfg/config';
+import PortWrapper from 'lib/PortWrapper';
 
 /** @param {NS} ns */
 export async function main(ns) {
-  const configPort = ns.getPortHandle(portConfig.config);
-  const networkMap = JSON.parse(ns.read(gameConfig.files.netmap));
-  const newTargetsPort = ns.getPortHandle(portConfig.newDeployerTargets);
+  const configPort = new PortWrapper(ns, portConfig.config);
+  const newTargetsPort = new PortWrapper(ns, portConfig.newDeployerTargets);
+  const lowRamMode = ns.args[0] || false;
 
   while (true) {
     // sleep at end
-    const playerSettings = peekPortObject(configPort);
-    const homeMaxRam = networkMap[gameConfig.home].maxRam;
-    const deployerRamUse = ns.getScriptRam(gameConfig.scripts.deployer);
-    const { reservedRamPercent, reservedRamGb } = playerSettings.home;
-    const homeUnreservedRam =
-      homeMaxRam - Math.max(reservedRamPercent * homeMaxRam, reservedRamGb);
-    var maxDeployerThreads = Math.floor(homeUnreservedRam / deployerRamUse);
+    const playerSettings = configPort.peek();
 
     if (playerSettings.log.silenced) {
       if (ns.isLogEnabled('sleep')) {
         ns.disableLog('ALL');
       }
-    } else {
-      if (!ns.isLogEnabled('sleep')) {
-        ns.enableLog('ALL');
-      }
+    } else if (!ns.isLogEnabled('sleep')) {
+      ns.enableLog('ALL');
     }
 
-    if (!newTargetsPort.empty()) {
-      const newTargetsData = readPortObject(newTargetsPort);
-      var newDeployers = 0;
+    if (!newTargetsPort.empty) {
+      const newTargetsData = newTargetsPort.read();
+      let newDeployers = 0;
 
-      while (newTargetsData.length && maxDeployerThreads) {
-        if (maxDeployerThreads > 0) {
+      if (!lowRamMode) {
+        while (newTargetsData.length) {
           const targetNode = newTargetsData.shift().node;
-          ns.run(gameConfig.scripts.deployer, 1, targetNode);
+          if (ns.run(gameConfig.scripts.deployer, 1, targetNode)) {
+            newDeployers += 1;
+          }
+        }
+      } else {
+        const targetNode = newTargetsData.shift().node;
+        if (ns.run(gameConfig.scripts.deployer, { preventDuplicates: true }, targetNode)) {
           newDeployers += 1;
-          maxDeployerThreads -= 1;
         }
       }
 
       if (newDeployers > 0) {
-        if (newTargetsData.length) {
-          ns.tprint(
-            `Started ${newDeployers}/${
-              newDeployers + newTargetsData.length
-            } new deployer(s) due to low RAM.`
-          );
-        } else {
-          ns.tprint(`Started ${newDeployers} new deployers.`);
-        }
+        ns.tprint(`Started ${newDeployers} new deployers.`);
       }
     }
 
-    await newTargetsPort.nextWrite();
+    await newTargetsPort.handle.nextWrite();
   }
 }

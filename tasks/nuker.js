@@ -1,36 +1,42 @@
-import { gameConfig, portConfig } from 'config.js';
-import { peekPortObject, tryWritePortObject } from "lib/Ports.js";
+import { gameConfig, portConfig } from 'cfg/config';
+import PortWrapper from 'lib/PortWrapper';
 
-/** @param {NS} ns **/
+/** @param {NS} ns */
 export async function main(ns) {
-  const configPort = ns.getPortHandle(portConfig.config);
-  const playerSettings = peekPortObject(configPort);
-  if (playerSettings.log.silenced) {
+  const configPort = new PortWrapper(ns, portConfig.config);
+  const playerSettings = configPort.peek();
+  try {
+    if (playerSettings.log.silenced) {
+      ns.disableLog('ALL');
+    } else {
+      ns.enableLog('ALL');
+    }
+  } catch (error) {
     ns.disableLog('ALL');
-  } else {
-    ns.enableLog('ALL');
   }
 
   const nuker = () => {
     const networkMap = JSON.parse(ns.read(gameConfig.files.netmap));
-    const newTargetsPort = ns.getPortHandle(portConfig.newDeployerTargets);
+    const newTargetsPort = new PortWrapper(ns, portConfig.newDeployerTargets);
     const playerExes = [];
-    const deployerPort = ns.getPortHandle(portConfig.deployer);
-    const deployerPortData = peekPortObject(deployerPort) || {};
+    const playerHackingLevel = ns.getHackingLevel();
+    const deployerPort = new PortWrapper(ns, portConfig.deployer);
+    const deployerPortData = deployerPort.peek();
     const existingTargets = Object.keys(deployerPortData);
     const newTargets = [];
-    var playerRootLevel = 0;
+    let playerRootLevel = 0;
 
-    for (let i in gameConfig.accessExes) {
-      if (ns.fileExists(gameConfig.accessExes[i], gameConfig.home)) {
+    gameConfig.accessExes.forEach((exe) => {
+      if (ns.fileExists(exe, gameConfig.home)) {
         playerRootLevel += 1;
-        playerExes.push(gameConfig.accessExes[i]);
+        playerExes.push(exe);
       }
-    }
+    });
 
-    for (let node in networkMap) {
+    Object.entries(networkMap).forEach(([node, nodeData]) => {
       if (node !== 'home' && !existingTargets.includes(node)) {
-        if (networkMap[node].ports <= playerRootLevel) {
+        if (nodeData.ports <= playerRootLevel) {
+          const { score } = nodeData;
           if (playerExes.includes(gameConfig.accessExes[0])) {
             ns.brutessh(node);
           }
@@ -48,18 +54,18 @@ export async function main(ns) {
           }
           ns.nuke(node);
 
-          if (networkMap[node].maxMoney > 0) {
-            const score = networkMap[node].score;
+          if (nodeData.maxMoney > 0 && score > 0 && nodeData.hackLevel <= playerHackingLevel) {
             newTargets.push({ node, score });
           }
         }
       }
-    }
+    });
 
     if (newTargets.length) {
       // Sort descending
       newTargets.sort((a, b) => b.score - a.score);
-      tryWritePortObject(newTargetsPort, newTargets);
+      ns.print(JSON.stringify(newTargets, null, 2));
+      newTargetsPort.write(newTargets);
     }
   };
 

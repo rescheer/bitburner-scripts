@@ -1,20 +1,18 @@
-import { portConfig, gameConfig } from 'config.js';
-import { peekPortObject } from 'lib/Ports.js';
+import { portConfig, gameConfig } from 'cfg/config';
+import PortWrapper from 'lib/PortWrapper';
 
 /** @param {NS} ns */
 export async function main(ns) {
-  const configPort = ns.getPortHandle(portConfig.config);
+  const configPort = new PortWrapper(ns, portConfig.config);
 
   while (true) {
-    const playerSettings = peekPortObject(configPort);
+    const playerSettings = configPort.peek();
     if (playerSettings.log.silenced) {
       if (ns.isLogEnabled('sleep')) {
         ns.disableLog('ALL');
       }
-    } else {
-      if (!ns.isLogEnabled('sleep')) {
-        ns.enableLog('ALL');
-      }
+    } else if (!ns.isLogEnabled('sleep')) {
+      ns.enableLog('ALL');
     }
 
     ns.run(gameConfig.scripts.netmap);

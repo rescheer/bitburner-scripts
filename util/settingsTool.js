@@ -1,18 +1,16 @@
-import * as Settings from 'lib/Settings.js';
-import { gameConfig, playerConfig, portConfig } from 'config.js';
-import { tryWritePortObject } from 'lib/Ports.js';
+import * as Settings from 'lib/settings';
+import { gameConfig, playerConfig, portConfig } from 'cfg/config';
+import PortWrapper from 'lib/PortWrapper';
 
 /** @param {NS} ns */
 export async function main(ns) {
   const argArray = ns.args;
   const { playerSettings: playerSettingsFile } = gameConfig.files;
-  const settingsPort = ns.getPortHandle(portConfig.config);
-  var result;
-  var changes = false;
+  const settingsPort = new PortWrapper(ns, portConfig.config);
+  let result;
+  let changes = false;
 
-  const updatePort = (settingsObject) => {
-    return tryWritePortObject(settingsPort, settingsObject);
-  };
+  const updatePort = (settingsObject) => settingsPort.write(settingsObject);
 
   switch (argArray[0]) {
     case 'get':
@@ -25,19 +23,14 @@ export async function main(ns) {
         }
       } else {
         result = Settings.getAllSettings(ns, playerSettingsFile);
-        ns.tprint(`Current Settings:`);
+        ns.tprint('Current Settings:');
         ns.tprint(JSON.stringify(result, null, 2));
       }
       break;
 
     case 'set':
       if (argArray[1]) {
-        result = Settings.setSetting(
-          ns,
-          argArray[1],
-          argArray[2],
-          playerSettingsFile
-        );
+        result = Settings.setSetting(ns, argArray[1], argArray[2], playerSettingsFile);
         if (result) {
           ns.tprint(`${argArray[1]} set to value: ${argArray[2]}`);
           changes = true;
@@ -49,12 +42,7 @@ export async function main(ns) {
 
     case 'reset':
       if (argArray[1]) {
-        result = Settings.resetSetting(
-          ns,
-          argArray[1],
-          playerSettingsFile,
-          playerConfig
-        );
+        result = Settings.resetSetting(ns, argArray[1], playerSettingsFile, playerConfig);
         if (result !== null) {
           ns.tprint(`${argArray[1]} reset to default value: ${result}`);
           changes = true;
@@ -66,14 +54,13 @@ export async function main(ns) {
 
     case 'resetall':
       Settings.resetAllSettings(ns, playerSettingsFile, playerConfig);
-      ns.tprint(`All settings returned to default values.`);
+      ns.tprint('All settings returned to default values.');
       changes = true;
       break;
 
     case 'load':
-      const settingsData = Settings.getAllSettings(ns, playerSettingsFile);
-      if (updatePort(settingsData)) {
-        ns.tprint(`Current settings loaded from file.`);
+      if (updatePort(Settings.getAllSettings(ns, playerSettingsFile))) {
+        ns.tprint('Current settings loaded from file.');
       }
       break;
 
@@ -87,6 +74,6 @@ export async function main(ns) {
   }
   if (changes) {
     const fileData = JSON.parse(ns.read(playerSettingsFile));
-    tryWritePortObject(settingsPort, fileData);
+    settingsPort.write(fileData);
   }
 }

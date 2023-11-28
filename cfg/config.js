@@ -1,11 +1,5 @@
 export const gameConfig = {
-  accessExes: [
-    'BruteSSH.exe',
-    'FTPCrack.exe',
-    'relaySMTP.exe',
-    'HTTPWorm.exe',
-    'SQLInject.exe',
-  ],
+  accessExes: ['BruteSSH.exe', 'FTPCrack.exe', 'relaySMTP.exe', 'HTTPWorm.exe', 'SQLInject.exe'],
   scripts: {
     startup: 'startup.js',
     hackThread: 'workers/hack.js',
@@ -45,11 +39,11 @@ export const playerConfig = {
   },
   deployers: {
     enabled: true,
-    hackPercent: 0.5,
-    sleepPadding: 100,
+    hackPercent: 0.4999,
+    sleepPadding: 50,
     interval: 500,
     securityTolerance: 0.1,
-    moneyTolerance: 0.15,
+    moneyTolerance: 0,
   },
   netmap: {
     interval: 30 * 1000,

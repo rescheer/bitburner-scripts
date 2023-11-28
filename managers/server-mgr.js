@@ -1,11 +1,11 @@
-import { gameConfig, portConfig } from 'config.js';
-import { peekPortObject, updatePortObjectKey } from "lib/Ports.js";
+import { portConfig } from 'cfg/config';
+import PortWrapper from 'lib/PortWrapper';
 
-/** @param {NS} ns **/
+/** @param {NS} ns */
 export async function main(ns) {
-  const configPort = ns.getPortHandle(portConfig.config);
-  const statusPort = ns.getPortHandle(portConfig.status);
-  const pServerPort = ns.getPortHandle(portConfig.pServer);
+  const configPort = new PortWrapper(ns, portConfig.config);
+  const statusPort = new PortWrapper(ns, portConfig.status);
+  const pServerPort = new PortWrapper(ns, portConfig.pServer);
 
   const servers = { total: { ram: 0, cost: 0, nodes: 0 }, data: {} };
   const buyInfo = {
@@ -13,21 +13,19 @@ export async function main(ns) {
     maxRam: ns.getPurchasedServerMaxRam(),
   };
 
-  const myMoney = () => {
-    return ns.getServerMoneyAvailable('home');
-  };
+  const myMoney = () => ns.getServerMoneyAvailable('home');
 
   const getRamNeeded = () => {
     const key = portConfig.statusKeys.missingRam;
-    return Number(peekPortObject(statusPort, key)) || 0;
+    return Number(statusPort.peekValue(key)) || 0;
   };
 
   const updateRamNeeded = (ramAdded) => {
     const key = portConfig.statusKeys.missingRam;
-    const oldValue = peekPortObject(statusPort, key) || 0;
+    const oldValue = statusPort.peekValue(key) || 0;
     const newValue = Math.max(oldValue - ramAdded, 0);
 
-    updatePortObjectKey(statusPort, key, newValue);
+    statusPort.writeValue(key, newValue);
   };
 
   const refreshPurchasedServers = () => {
@@ -44,7 +42,7 @@ export async function main(ns) {
     servers.total.cost = servers.total.ram * ramCostPerGb;
     servers.total.nodes = Object.keys(servers.data).length;
 
-    updatePortObjectKey(pServerPort, portKey, servers);
+    pServerPort.writeValue(portKey, servers);
   };
 
   const refreshBuyInfo = () => {
@@ -53,7 +51,7 @@ export async function main(ns) {
     buyInfo.maxServers = ns.getPurchasedServerLimit() || 0;
     buyInfo.maxRam = ns.getPurchasedServerMaxRam() || 2;
 
-    updatePortObjectKey(pServerPort, portKey, buyInfo);
+    pServerPort.writeValue(portKey, buyInfo);
   };
 
   const isAbleToPurchase = () => {
@@ -78,24 +76,27 @@ export async function main(ns) {
   };
 
   const checkUpgrades = (maxRam, maxMoney) => {
-    const best = { name: '', ram: -1, cost: -1, ratio: -1 };
+    const best = {
+      name: '',
+      ram: -1,
+      cost: -1,
+      ratio: -1,
+    };
 
-    for (const server in servers.data) {
-      if (server !== 'total') {
-        const currentRam = servers.data[server].ram;
-        for (let ram = currentRam * 2; ram <= maxRam; ram *= 2) {
-          const cost = ns.getPurchasedServerUpgradeCost(server, ram);
-          if (cost < maxMoney) {
-            best.name = server;
-            best.ram = ram;
-            best.cost = cost;
-            best.ratio = (ram - currentRam) / cost;
-          } else if (cost > maxMoney) {
-            break;
-          }
+    Object.entries(servers.data).forEach(([server, serverInfo]) => {
+      const currentRam = serverInfo.ram;
+      for (let ram = currentRam * 2; ram <= maxRam; ram *= 2) {
+        const cost = ns.getPurchasedServerUpgradeCost(server, ram);
+        if (cost < maxMoney) {
+          best.name = server;
+          best.ram = ram;
+          best.cost = cost;
+          best.ratio = (ram - currentRam) / cost;
+        } else if (cost > maxMoney) {
+          break;
         }
       }
-    }
+    });
 
     return best;
   };
@@ -106,7 +107,7 @@ export async function main(ns) {
   ns.print(
     `> Total Server Ram: ${ns.formatRam(servers.total.ram, 0)} across ${
       servers.total.nodes
-    } servers`
+    } servers`,
   );
   ns.print(`> Ram Requested: ${ns.formatRam(getRamNeeded())}`);
   ns.print(`> Total spent: ${ns.formatNumber(servers.total.cost)}`);
@@ -114,37 +115,29 @@ export async function main(ns) {
 
   while (true) {
     // sleep at end
-    const playerSettings = peekPortObject(configPort);
+    const playerSettings = configPort.peek();
     const { moneyUsed } = playerSettings.pServer;
     if (playerSettings.log.silenced) {
       if (ns.isLogEnabled('sleep')) {
         ns.disableLog('ALL');
       }
-    } else {
-      if (!ns.isLogEnabled('sleep')) {
-        ns.enableLog('ALL');
-      }
+    } else if (!ns.isLogEnabled('sleep')) {
+      ns.enableLog('ALL');
     }
-    
+
     refreshBuyInfo();
     refreshPurchasedServers();
 
     if (getRamNeeded() > 0) {
       const bestAffordable = {};
 
-      const upgradeResult = checkUpgrades(
-        buyInfo.maxRam,
-        myMoney() * moneyUsed
-      );
+      const upgradeResult = checkUpgrades(buyInfo.maxRam, myMoney() * moneyUsed);
       if (upgradeResult.cost > 0) {
         bestAffordable.upgrade = upgradeResult;
       }
 
       if (isAbleToPurchase()) {
-        const purchaseResult = checkPurchases(
-          buyInfo.maxRam,
-          myMoney() * moneyUsed
-        );
+        const purchaseResult = checkPurchases(buyInfo.maxRam, myMoney() * moneyUsed);
 
         if (purchaseResult.cost > 0) {
           bestAffordable.purchased = purchaseResult;
@@ -159,15 +152,13 @@ export async function main(ns) {
         updateRamNeeded(upgrade.ram - ns.getServerMaxRam(upgrade.name));
         ns.upgradePurchasedServer(upgrade.name, upgrade.ram);
       } else if (bestAffordable.purchased || bestAffordable.upgrade) {
-        const option = bestAffordable.purchased
-          ? bestAffordable.purchased
-          : bestAffordable.upgrade;
+        const option = bestAffordable.purchased ? bestAffordable.purchased : bestAffordable.upgrade;
 
         if (option.name) {
           updateRamNeeded(option.ram - ns.getServerMaxRam(option.name));
           ns.upgradePurchasedServer(option.name, option.ram);
         } else {
-          ns.purchaseServer(`pserv-0`, option.ram);
+          ns.purchaseServer('pserv-0', option.ram);
           updateRamNeeded(option.ram);
         }
       }
@@ -175,9 +166,9 @@ export async function main(ns) {
 
     ns.clearLog();
     ns.print(
-      `> Total Server Ram: ${ns.formatRam(servers.total.ram, 0)} in ${
-        servers.total.nodes
-      }/${buyInfo.maxServers} servers.`
+      `> Total Server Ram: ${ns.formatRam(servers.total.ram, 0)} in ${servers.total.nodes}/${
+        buyInfo.maxServers
+      } servers.`,
     );
     ns.print(`> Ram Requested: ${ns.formatRam(getRamNeeded())}`);
     ns.print(`> Total spent: ${ns.formatNumber(servers.total.cost)}`);

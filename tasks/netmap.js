@@ -1,17 +1,19 @@
-import { portConfig, gameConfig } from 'config.js';
-import { peekPortObject } from 'lib/Ports.js';
+import { portConfig, gameConfig } from 'cfg/config';
+import PortWrapper from 'lib/PortWrapper';
 
-/** @param {NS} ns **/
+/** @param {NS} ns */
 export async function main(ns) {
-  const configPort = ns.getPortHandle(portConfig.config);
-  const playerSettings = peekPortObject(configPort);
+  const configPort = new PortWrapper(ns, portConfig.config);
+  const playerSettings = configPort.peek();
   try {
     if (playerSettings.log.silenced) {
       ns.disableLog('ALL');
     } else {
       ns.enableLog('ALL');
     }
-  } catch (error) {}
+  } catch (error) {
+    ns.disableLog('ALL');
+  }
 
   const recursiveScan = (host, currentData = {}) => {
     const myConnections = ns.scan(host);
