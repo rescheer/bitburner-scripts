@@ -18,11 +18,12 @@ export async function main(ns) {
   const nuker = () => {
     const networkMap = JSON.parse(ns.read(gameConfig.files.netmap));
     const newTargetsPort = new PortWrapper(ns, portConfig.newDeployerTargets);
-    const playerExes = [];
-    const playerHackingLevel = ns.getHackingLevel();
     const deployerPort = new PortWrapper(ns, portConfig.deployer);
     const deployerPortData = deployerPort.peek();
     const existingTargets = Object.keys(deployerPortData);
+
+    const playerHackingLevel = ns.getHackingLevel();
+    const playerExes = [];
     const newTargets = [];
     let playerRootLevel = 0;
 
