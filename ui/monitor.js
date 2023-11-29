@@ -77,17 +77,18 @@ export async function main(ns) {
       incomeFieldLength,
     ].reduce((total, num) => total + num);
 
-    const progressFieldLength = length - lengthWithoutProgress;
+    const extraLength = length - lengthWithoutProgress;
+    const progressFieldLength = extraLength > 10 ? extraLength : 4;
 
     const nameHeader = 'Target';
     const taskHeader = 'Task';
-    const progressHeader = 'Progress';
+    const progressHeader = 'Time';
     const moneyHeader = 'Money';
     const securityHeader = 'Security';
     const incomeHeader = '$/sec';
 
     const headersArray = [
-      nameHeader.padStart(nameFieldLength),
+      nameHeader,
       taskHeader.padStart(taskFieldLength),
       progressHeader.padStart(progressFieldLength),
       moneyHeader.padStart(moneyFieldLength),
@@ -125,21 +126,27 @@ export async function main(ns) {
     results.forEach((el, i) => {
       results[i] = el.padStart(length);
     });
-    results.unshift(headersArray.join(separator));
+
+    results.unshift(headersArray.join(separator).padStart(length));
     return results;
   };
 
   ns.tail();
+  ns.resizeTail(970, 900);
 
   while (true) {
-    const { interval, width } = configPort.peekValue('monitor');
+    const { interval } = configPort.peekValue('monitor');
+    const tailProps = ns.getRunningScript().tailProperties;
+    const { width: tailWidth } = tailProps;
+    const charLength = Math.ceil(tailWidth / 9.8);
+
     // get tail window width and use it for length calc
     ns.disableLog('ALL');
 
-    if (ns.getRunningScript().tailProperties) {
+    if (tailProps) {
       const nodes = Object.keys(deployerPort.peek());
       ns.clearLog();
-      getNodeStatusStrings(nodes, width).forEach((line) => {
+      getNodeStatusStrings(nodes, charLength).forEach((line) => {
         ns.print(line);
       });
     } else {
