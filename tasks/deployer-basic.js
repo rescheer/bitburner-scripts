@@ -327,6 +327,7 @@ export async function main(ns) {
       currentTask.duration = sleepTime;
       currentTask.expires = Date.now() + sleepTime;
       currentTask.active = true;
+      Object.assign(currentTask, activeTarget);
       deployerPort.writeValue(activeTarget.name, currentTask);
     } else {
       // If our hacking level has increased, we may be able to restart

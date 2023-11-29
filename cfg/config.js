@@ -26,6 +26,14 @@ export const playerConfig = {
     reservedRamPercent: 0.1,
     reservedRamGb: 3.2,
   },
+  monitor: {
+    pBarActiveChar: '█',
+    pBarInactiveChar: ' ',
+    pBarEndChars: ['[', ']'],
+    separator: ' | ',
+    interval: 500,
+    width: 100,
+  },
   log: {
     silenced: true,
   },
