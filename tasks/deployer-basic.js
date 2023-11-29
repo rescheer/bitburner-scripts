@@ -61,7 +61,8 @@ export async function main(ns) {
     const {
       currentMoney, maxMoney, growTime, name,
     } = nodeData;
-    const deltaMult = maxMoney / currentMoney;
+    // Round up to 1 decimal place
+    const deltaMult = (maxMoney / currentMoney) * 1.15;
     const threadRam = ns.getScriptRam(gameConfig.scripts.growThread, gameConfig.home);
 
     const threads = Math.ceil(ns.growthAnalyze(name, deltaMult));
