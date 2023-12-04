@@ -31,8 +31,9 @@ export async function main(ns) {
           }
         }
       } else {
-        const targetNode = newTargetsData.shift().node;
+        const targetNode = newTargetsData[0];
         if (ns.run(gameConfig.scripts.deployer, { preventDuplicates: true }, targetNode)) {
+          newTargetsData.shift();
           newDeployers += 1;
         }
       }
