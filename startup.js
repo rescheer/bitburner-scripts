@@ -37,22 +37,22 @@ export async function main(ns) {
   }
 
   // network manager (2.6gb)
-  if (ns.run(gameConfig.scripts.network, { preventDuplicates: true })) {
+  if (ns.run(gameConfig.scripts.networkMgr, { preventDuplicates: true })) {
     ns.tprint('Network manager ready.');
   }
 
   // hacking manager (2.7gb)
-  if (ns.run(gameConfig.scripts.hacking, { preventDuplicates: true }, lowRamMode)) {
+  if (ns.run(gameConfig.scripts.hackingMgr, { preventDuplicates: true }, lowRamMode)) {
     ns.tprint('Hacking manager ready.');
   }
 
   // server manager (6.95gb)
-  if (!lowRamMode && ns.run(gameConfig.scripts.server, { preventDuplicates: true })) {
+  if (!lowRamMode && ns.run(gameConfig.scripts.serverMgr, { preventDuplicates: true })) {
     ns.tprint('Server manager ready.');
   }
 
   // hacknet manager (5.7gb)
-  if (!lowRamMode && ns.run(gameConfig.scripts.hacknet, { preventDuplicates: true })) {
+  if (!lowRamMode && ns.run(gameConfig.scripts.hacknetMgr, { preventDuplicates: true })) {
     ns.tprint('Hacknet manager ready.');
   }
 
