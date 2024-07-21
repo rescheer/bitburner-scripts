@@ -137,13 +137,13 @@ export async function main(ns) {
   while (true) {
     const { interval } = configPort.peekValue('monitor');
     const tailProps = ns.getRunningScript().tailProperties;
-    const { width: tailWidth } = tailProps;
-    const charLength = Math.ceil(tailWidth / 9.8);
 
-    // get tail window width and use it for length calc
     ns.disableLog('ALL');
 
     if (tailProps) {
+      const { width: tailWidth } = tailProps;
+      // 1 char ~= 9.8px
+      const charLength = Math.ceil(tailWidth / 9.8);
       const nodes = Object.keys(deployerPort.peek());
       ns.clearLog();
       getNodeStatusStrings(nodes, charLength).forEach((line) => {
