@@ -38,26 +38,32 @@ export async function main(ns) {
 
   // network manager (2.6gb)
   if (ns.run(gameConfig.scripts.networkMgr, { preventDuplicates: true })) {
-    ns.tprint('Network manager ready.');
+    ns.tprint('Network manager startup complete.');
   }
 
   // hacking manager (2.7gb)
   if (ns.run(gameConfig.scripts.hackingMgr, { preventDuplicates: true }, lowRamMode)) {
-    ns.tprint('Hacking manager ready.');
+    ns.tprint('Hacking manager startup complete.');
   }
 
   // server manager (6.95gb)
   if (!lowRamMode && ns.run(gameConfig.scripts.serverMgr, { preventDuplicates: true })) {
-    ns.tprint('Server manager ready.');
+    ns.tprint('Server manager startup complete.');
+  } else {
+    ns.tprint('Server manager skipped: low ram.');
   }
 
   // hacknet manager (5.7gb)
   if (!lowRamMode && ns.run(gameConfig.scripts.hacknetMgr, { preventDuplicates: true })) {
-    ns.tprint('Hacknet manager ready.');
+    ns.tprint('Hacknet manager startup complete.');
+  } else {
+    ns.tprint('Hacknet manager skipped: low ram.');
   }
 
   // overview (eventually UI manager) (1.7gb)
   if (!lowRamMode && ns.run(gameConfig.scripts.overview, { preventDuplicates: true })) {
-    ns.tprint('Overview ready.');
+    ns.tprint('Overview startup complete.');
+  } else {
+    ns.tprint('Overview skipped: low ram.');
   }
 }
