@@ -1,5 +1,11 @@
 export const gameConfig = {
-  accessExes: ['BruteSSH.exe', 'FTPCrack.exe', 'relaySMTP.exe', 'HTTPWorm.exe', 'SQLInject.exe'],
+  accessExes: [
+    'BruteSSH.exe',
+    'FTPCrack.exe',
+    'relaySMTP.exe',
+    'HTTPWorm.exe',
+    'SQLInject.exe',
+  ],
   crimes: [
     'Assassination',
     'Bond Forgery',

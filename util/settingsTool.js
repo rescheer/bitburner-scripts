@@ -1,4 +1,4 @@
-import * as Settings from 'lib/settings';
+import * as Settings from 'lib/Settings';
 import { gameConfig, playerConfig, portConfig } from 'cfg/config';
 import PortWrapper from 'lib/PortWrapper';
 

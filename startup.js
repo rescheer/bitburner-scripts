@@ -1,6 +1,6 @@
 /* eslint-disable no-useless-return */
 import { playerConfig, gameConfig, portConfig } from 'cfg/config';
-import { resetAllSettings, getAllSettings } from 'lib/settings';
+import { resetAllSettings, getAllSettings } from 'lib/Settings';
 import PortWrapper from 'lib/PortWrapper';
 
 /** @param {NS} ns */
